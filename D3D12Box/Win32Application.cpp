@@ -17,4 +17,6 @@ int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     windowClass.lpszClassName = L"DXSampleClass";
     RegisterClassEx(&windowClass);
+
+    RECT windowRect = { 0,0,static_cast<LONG>(pSample->GetWidth()),static_cast<LONG>(pSample->GetHeight()) };
 }
