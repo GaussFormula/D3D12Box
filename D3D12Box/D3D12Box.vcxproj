@@ -153,11 +153,13 @@
     <ClInclude Include="D3DAppBase.h" />
     <ClInclude Include="D3DAppUtil.h" />
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="GameTImer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3DAppBase.cpp" />
+    <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>

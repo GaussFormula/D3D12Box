@@ -19,4 +19,21 @@ int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow
     RegisterClassEx(&windowClass);
 
     RECT windowRect = { 0,0,static_cast<LONG>(pSample->GetWidth()),static_cast<LONG>(pSample->GetHeight()) };
+    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, false);
+
+    m_hwnd = CreateWindow(
+        windowClass.lpszClassName,
+        pSample->GetTitle(),
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        windowRect.right - windowRect.left,
+        windowRect.bottom - windowRect.top,
+        nullptr,    // We have no parent window.
+        nullptr,    // We aren't using menus.
+        hInstance,
+        pSample
+    );
+
+
 }
