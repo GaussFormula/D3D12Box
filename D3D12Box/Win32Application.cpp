@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "Win32Application.h"
 
 int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow)
@@ -35,5 +36,32 @@ int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow
         pSample
     );
 
+    ShowWindow(m_hwnd, nCmdShow);
+    UpdateWindow(m_hwnd);
 
+    // Main sample loop.
+    return pSample->Run();
+}
+
+// Main message handler for the sample
+LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    D3DAppBase* pSample = reinterpret_cast<D3DAppBase*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    switch (message)
+    {
+    case WM_CREATE:
+    {
+        // Save the D3DAppBase* passed in to CreateWindow.
+        LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
+    }
+    return 0;
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    
+    }
+
+    // Handle any messages the switch statement didn't.
+    return DefWindowProc(hWnd, message, wParam, lParam);
 }

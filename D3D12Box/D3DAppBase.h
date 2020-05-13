@@ -5,7 +5,9 @@
 #endif // defined(DEBUG)|| defined(_DEBUG)
 
 #include "stdafx.h"
-#include "GameTImer.h"
+#include "GameTimer.h"
+
+using Microsoft::WRL::ComPtr;
 
 
 class D3DAppBase
@@ -31,7 +33,7 @@ private:
     UINT m_width;
     UINT m_height;
 
-    ComPtr<GameTimer> m_gameTimer;
+    std::unique_ptr<GameTimer> m_gameTimer;
 
     UINT m_frameCount = 2;
 };

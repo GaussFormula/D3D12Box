@@ -1,6 +1,6 @@
+#include "stdafx.h"
 #include "D3DAppBase.h"
 #include "Win32Application.h"
-
 using namespace Microsoft::WRL;
 
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
@@ -10,12 +10,12 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
     m_useWarpDevice(false),
     m_frameCount(frameCount)
 {
-    m_gameTimer = &GameTimer();
+    m_gameTimer = std::make_unique<GameTimer>();
 }
 
 D3DAppBase::~D3DAppBase()
 {
-    m_gameTimer.Reset();
+    m_gameTimer.release();
 }
 
 void D3DAppBase::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
@@ -50,6 +50,7 @@ auto D3DAppBase::Run()->int
             CalculateFrameStats();
         }
     }
+    return (int)msg.wParam;
 }
 
 void D3DAppBase::CalculateFrameStats()
