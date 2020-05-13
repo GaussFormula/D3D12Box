@@ -16,6 +16,8 @@ public:
 
     void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);
 
+    void CalculateFrameStats();
+
     // Accessors
     UINT GetWidth()const { return m_width; }
     UINT GetHeight()const { return m_height; }

@@ -1,4 +1,5 @@
 #include "D3DAppBase.h"
+#include "Win32Application.h"
 
 using namespace Microsoft::WRL;
 
@@ -9,7 +10,7 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
     m_useWarpDevice(false),
     m_frameCount(frameCount)
 {
-    m_gameTimer = std::make_unique<GameTimer>();
+    m_gameTimer = &GameTimer();
 }
 
 D3DAppBase::~D3DAppBase()
@@ -42,5 +43,43 @@ auto D3DAppBase::Run()->int
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        // Otherwise, do animation/game stuff.
+        else
+        {
+            m_gameTimer->Tick();
+            CalculateFrameStats();
+        }
+    }
+}
+
+void D3DAppBase::CalculateFrameStats()
+{
+    // Code computes the average frames per second, and also the 
+    // average time it takes to render one frame.  These stats 
+    // are appended to the window caption bar.
+
+    static int frameCnt = 0;
+    static float timeElapsed = 0.0f;
+
+    frameCnt++;
+
+    // Compute averages over one second period.
+    if (D3DAppBase::m_gameTimer->TotalTime() - timeElapsed >= 1.0f)
+    {
+        float fps = (float)frameCnt;
+        float mspf = 1000.0f / fps;
+
+        std::wstring fpsStr = std::to_wstring(fps);
+        std::wstring mspfStr = std::to_wstring(mspf);
+
+        std::wstring windowText = D3DAppBase::m_title +
+            L"  fps: " + fpsStr +
+            L"  mspf: " + mspfStr;
+
+        SetWindowText(Win32Application::GetHwnd(), windowText.c_str());
+
+        // Reset for next average.
+        frameCnt = 0;
+        timeElapsed += 1.0f;
     }
 }
