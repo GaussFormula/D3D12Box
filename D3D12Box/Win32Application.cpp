@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Win32Application.h"
+HWND Win32Application::m_hwnd = nullptr;
 
 int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow)
 {
