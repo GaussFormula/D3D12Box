@@ -2,7 +2,7 @@
 #include "D3DAppBase.h"
 #include "Win32Application.h"
 using namespace Microsoft::WRL;
-
+HWND Win32Application::m_hwnd;
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
     m_width(width),
     m_height(height),

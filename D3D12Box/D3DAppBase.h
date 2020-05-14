@@ -7,6 +7,8 @@
 #include "stdafx.h"
 #include "GameTimer.h"
 
+
+
 using Microsoft::WRL::ComPtr;
 
 
@@ -36,4 +38,5 @@ private:
     std::unique_ptr<GameTimer> m_gameTimer;
 
     UINT m_frameCount = 2;
+
 };
