@@ -1,4 +1,5 @@
 #pragma once
+#include "stdafx.h"
 #include "D3DAppBase.h"
 
 class D3DAppBox:public D3DAppBase

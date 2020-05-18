@@ -89,7 +89,11 @@ void D3DAppBase::CalculateFrameStats()
 
 void D3DAppBase::InitializePipeline()
 {
-
+    CreateFactoryDeviceAdapter();
+    InitializeDescriptorSize();
+    CreateCommandObjects();
+    CheckFeatureSupport();
+    CreateSwapChain();
 }
 
 void D3DAppBase::CreateFactoryDeviceAdapter()
@@ -104,7 +108,7 @@ void D3DAppBase::CreateFactoryDeviceAdapter()
         dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
     }
 #endif
-    ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_factory)));
+    ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags,IID_PPV_ARGS(&m_factory)));
     if (m_useWarpDevice)
     {
         ThrowIfFailed(m_factory->EnumWarpAdapter(IID_PPV_ARGS(&m_adapter)));
@@ -116,30 +120,135 @@ void D3DAppBase::CreateFactoryDeviceAdapter()
     }
     else
     {
-        for (int adapterIndex = 0; DXGI_ERROR_NOT_FOUND!= m_factory->EnumAdapters1(adapterIndex,&m_adapter); adapterIndex++)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            m_adapter->GetDesc1(&desc);
-            if (desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE)
-            {
-                //Don't select the Basic Render Driver adapter
-                //If you want a software adapter, pass in "warp" on the command line.
-                continue;
-            }
-            if (SUCCEEDED(D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_device))))
-            {
-                break;
-            }
-        }
+        GetHardwareAdapter(m_factory.Get(), &m_adapter);
+        ThrowIfFailed(D3D12CreateDevice(
+            m_adapter.Get(),
+            D3D_FEATURE_LEVEL_11_0,
+            IID_PPV_ARGS(&m_device)
+        ));
     }
 
 }
 void D3DAppBase::InitializeDescriptorSize()
 {
-
+    m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_dsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    m_cbvSrvUavDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 void D3DAppBase::CheckFeatureSupport()
+{
+    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
+    msQualityLevels.Format = m_backBufferFormat;
+    msQualityLevels.SampleCount = 4;
+    msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+    msQualityLevels.NumQualityLevels = 0;
+    ThrowIfFailed(m_device->CheckFeatureSupport(
+        D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+        &msQualityLevels, sizeof(msQualityLevels)
+    ));
+
+    m_4xMsaaQuality = msQualityLevels.NumQualityLevels;
+    assert(m_4xMsaaQuality > 0 && "Unexpected MSAA quality level");
+}
+
+void D3DAppBase::GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter)
+{
+    ComPtr<IDXGIAdapter1> adapter;
+    *ppAdapter = nullptr;
+    for (UINT adapterIndex = 0; DXGI_ERROR_NOT_FOUND != m_factory->EnumAdapters1(adapterIndex, &adapter); adapterIndex++)
+    {
+        DXGI_ADAPTER_DESC1 desc;
+        adapter->GetDesc1(&desc);
+        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+        {
+            //Don't select the Basic Render Driver adapter
+            //If you want a software adapter, pass in "warp" on the command line.
+            continue;
+        }
+        if (SUCCEEDED(D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+        {
+            break;
+        }
+    }
+    *ppAdapter = adapter.Detach();
+}
+
+void D3DAppBase::CreateCommandQueue()
+{
+    // Describe and create the command queue.
+    D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    queueDesc.Type = m_commandListType;
+    ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+}
+
+void D3DAppBase::CreateCommandAllocator()
+{
+    ThrowIfFailed(m_device->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocator)));
+}
+
+void D3DAppBase::CreateCommandList()
+{
+    ThrowIfFailed(m_device->CreateCommandList(
+        0, m_commandListType,
+        m_commandAllocator.Get(),
+        nullptr, IID_PPV_ARGS(&m_commandList)
+    ));
+    m_commandList->Close();
+}
+
+void D3DAppBase::CreateSwapChain()
+{
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    swapChainDesc.BufferCount = m_frameCount;
+    swapChainDesc.Width = m_width;
+    swapChainDesc.Height = m_height;
+    swapChainDesc.Format = m_backBufferFormat;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapChainDesc.SampleDesc.Count = m_4xMsaaState ? 4 : 1;
+    swapChainDesc.SampleDesc.Quality = m_4xMsaaState ? (m_4xMsaaQuality - 1) : 0;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    ComPtr<IDXGISwapChain1> swapchain;
+    ThrowIfFailed(m_factory->CreateSwapChainForHwnd(
+        m_commandQueue.Get(),
+        Win32Application::GetHwnd(),
+        &swapChainDesc,
+        nullptr, nullptr,
+        &swapchain
+    ));
+
+    // This sample does not support fullscreen transitions.
+    ThrowIfFailed(m_factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
+
+    ThrowIfFailed(swapchain.As(&m_swapChain));
+    m_currentBackBuffer = m_swapChain->GetCurrentBackBufferIndex();
+}
+
+void D3DAppBase::OnInit()
+{
+    InitializePipeline();
+}
+
+void D3DAppBase::CreateCommandObjects()
+{
+    CreateCommandQueue();
+    CreateCommandAllocator();
+    CreateCommandList();
+}
+
+void D3DAppBase::OnUpdate()
+{
+
+}
+
+void D3DAppBase::OnRender()
+{
+
+}
+
+void D3DAppBase::OnDestroy()
 {
 
 }

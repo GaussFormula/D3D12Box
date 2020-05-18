@@ -37,6 +37,8 @@ int Win32Application::Run(D3DAppBase* pSample, HINSTANCE hInstance, int nCmdShow
         pSample
     );
 
+    pSample->OnInit();
+
     ShowWindow(m_hwnd, nCmdShow);
     UpdateWindow(m_hwnd);
 
