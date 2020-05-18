@@ -8,4 +8,8 @@ public:
     virtual ~D3DAppBox();
 protected:
 private:
+    virtual void OnInit()override;
+    virtual void OnUpdate()override;
+    virtual void OnRender()override;
+    virtual void OnDestroy()override;
 };

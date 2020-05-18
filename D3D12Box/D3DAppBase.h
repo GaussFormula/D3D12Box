@@ -18,10 +18,10 @@ public:
     D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount = 2);
     virtual ~D3DAppBase();
 
-    virtual void OnInit() = 0;
-    virtual void OnUpdate() = 0;
-    virtual void OnRender() = 0;
-    virtual void OnDestroy() = 0;
+    virtual void OnInit();
+    virtual void OnUpdate();
+    virtual void OnRender();
+    virtual void OnDestroy();
 
     D3DAppBase(const D3DAppBase& rhs) = delete;
     D3DAppBase& operator=(const D3DAppBase& rhs) = delete;
@@ -37,14 +37,53 @@ public:
 
     auto Run()->int;
 protected:
+
+    // Functions.
+    void CreateFactoryDeviceAdapter();
+    void InitializeDescriptorSize();
+    void CheckFeatureSupport();
+    void InitializePipeline();
+
+
+
+    ComPtr<IDXGIFactory4>   m_factory;
+    ComPtr<ID3D12Device>    m_device;
+    ComPtr<IDXGIAdapter1>   m_adapter;
+
+    ComPtr<ID3D12CommandAllocator>  m_commandAllocator;
+    ComPtr<ID3D12CommandQueue>  m_commandQueue;
+    ComPtr<ID3D12GraphicsCommandList>   m_commandList;
+
+    ComPtr<ID3D12RootSignature> m_rootSignature;
+
+    ComPtr<IDXGISwapChain> m_swapChain;
+    std::vector<ComPtr<ID3D12Resource>> m_swapChainBuffer;
+    UINT m_frameCount = 2;
+    UINT m_currentBackBuffer = 0;
+
+    ComPtr<ID3D12Resource>  m_depthStencilBuffer;
+
+    D3D12_VIEWPORT  m_screenViewport;
+    D3D12_RECT  m_scissorRect;
+
+    UINT m_rtvDescriptorSize = 0;
+    UINT m_dsvDescriptorSize = 0;
+    UINT m_cbvSrvUavDescriptorSize = 0;
+
+    ComPtr<ID3D12Fence> m_fence;
+    UINT64 m_currentFence = 0;
+
     bool m_useWarpDevice = false;
-    std::wstring m_title;
     UINT m_width;
     UINT m_height;
+    float m_aspectRatio;
 
     std::unique_ptr<GameTimer> m_gameTimer;
 
-    UINT m_frameCount = 2;
+    DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    DXGI_FORMAT m_depthBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    D3D_DRIVER_TYPE m_d3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
 
 private:
+    std::wstring m_title;
 };

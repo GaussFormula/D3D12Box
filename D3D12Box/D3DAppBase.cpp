@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "D3DAppBase.h"
 #include "Win32Application.h"
+#include "D3DAppUtil.h"
 using namespace Microsoft::WRL;
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
     m_width(width),
@@ -10,6 +11,7 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
     m_frameCount(frameCount)
 {
     m_gameTimer = std::make_unique<GameTimer>();
+    m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 
 D3DAppBase::~D3DAppBase()
@@ -82,4 +84,62 @@ void D3DAppBase::CalculateFrameStats()
         frameCnt = 0;
         timeElapsed += 1.0f;
     }
+}
+
+
+void D3DAppBase::InitializePipeline()
+{
+
+}
+
+void D3DAppBase::CreateFactoryDeviceAdapter()
+{
+    UINT dxgiFactoryFlags = 0;
+#if defined(DEBUG)||defined(_DEBUG)
+    // Enable the d3d12 debug layer.
+    {
+        ComPtr<ID3D12Debug> debugController;
+        ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
+        debugController->EnableDebugLayer();
+        dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+    }
+#endif
+    ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_factory)));
+    if (m_useWarpDevice)
+    {
+        ThrowIfFailed(m_factory->EnumWarpAdapter(IID_PPV_ARGS(&m_adapter)));
+        ThrowIfFailed(D3D12CreateDevice(
+            m_adapter.Get(),
+            D3D_FEATURE_LEVEL_11_0,
+            IID_PPV_ARGS(&m_device)
+        ));
+    }
+    else
+    {
+        for (int adapterIndex = 0; DXGI_ERROR_NOT_FOUND!= m_factory->EnumAdapters1(adapterIndex,&m_adapter); adapterIndex++)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            m_adapter->GetDesc1(&desc);
+            if (desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                //Don't select the Basic Render Driver adapter
+                //If you want a software adapter, pass in "warp" on the command line.
+                continue;
+            }
+            if (SUCCEEDED(D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_device))))
+            {
+                break;
+            }
+        }
+    }
+
+}
+void D3DAppBase::InitializeDescriptorSize()
+{
+
+}
+
+void D3DAppBase::CheckFeatureSupport()
+{
+
 }
