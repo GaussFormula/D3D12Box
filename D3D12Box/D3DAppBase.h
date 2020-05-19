@@ -51,6 +51,7 @@ protected:
     void CreateSwapChain();
     void CreateFenceObjects();
     void CreateRtvAndDsvDescriptorHeaps();
+    void CreateFrameResources();
 
 
     ComPtr<IDXGIFactory4>   m_factory;
@@ -65,7 +66,7 @@ protected:
     ComPtr<ID3D12RootSignature> m_rootSignature;
 
     ComPtr<IDXGISwapChain3> m_swapChain;
-    std::vector<ComPtr<ID3D12Resource>> m_swapChainBuffer;
+    std::vector<ComPtr<ID3D12Resource>> m_renderTargets;
     UINT m_frameCount = 2;
     UINT m_currentBackBuffer = 0;
 

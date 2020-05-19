@@ -3,6 +3,7 @@
 #include "Win32Application.h"
 #include "D3DAppUtil.h"
 using namespace Microsoft::WRL;
+using namespace DirectX;
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
     m_width(width),
     m_height(height),
@@ -261,10 +262,25 @@ void D3DAppBase::CreateRtvAndDsvDescriptorHeaps()
     ));
 }
 
+void D3DAppBase::CreateFrameResources()
+{
+    m_renderTargets.resize(m_frameCount);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+
+    // Create a RTV for each frame.
+    for (UINT n = 0; n < m_frameCount; n++)
+    {
+        ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
+        m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
+        rtvHandle.Offset(1, m_rtvDescriptorSize);
+    }
+}
 
 void D3DAppBase::OnInit()
 {
     InitializePipeline();
+    CreateFrameResources();
 }
 
 void D3DAppBase::CreateCommandObjects()
@@ -281,6 +297,35 @@ void D3DAppBase::OnUpdate()
 
 void D3DAppBase::OnRender()
 {
+    // Command list allocators can only be reset when the associated 
+    // command lists have finished execution on the GPU; apps should use 
+    // fences to determine GPU execution progress.
+    ThrowIfFailed(m_commandAllocator->Reset());
+
+    // However, when ExecuteCommandList() is called on a particular command 
+    // list, that command list can then be reset at any time and must be before 
+    // re-recording.
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+
+    // Indicate that the back buffer will be used as a render target.
+    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+        m_renderTargets[m_currentBackBuffer].Get(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(),m_currentBackBuffer,m_rtvDescriptorSize);
+    
+
+    // Record commands.
+    if (m_currentBackBuffer % 2 == 0)
+    {
+        m_commandList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+    }
+    else
+    {
+        m_commandList->ClearRenderTargetView(rtvHandle, Colors::Azure, 0, nullptr);
+    }
+    
 
 }
 
