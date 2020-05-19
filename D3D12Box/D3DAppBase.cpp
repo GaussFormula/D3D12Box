@@ -10,6 +10,9 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
     m_useWarpDevice(false),
     m_frameCount(frameCount)
 {
+    WCHAR assetsPath[512];
+    GetAssetsPath(assetsPath, _countof(assetsPath));
+    m_assetsPath = assetsPath;
     m_gameTimer = std::make_unique<GameTimer>();
     m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
@@ -94,6 +97,7 @@ void D3DAppBase::InitializePipeline()
     CreateCommandObjects();
     CheckFeatureSupport();
     CreateSwapChain();
+    CreateFenceObjects();
 }
 
 void D3DAppBase::CreateFactoryDeviceAdapter()
@@ -225,6 +229,38 @@ void D3DAppBase::CreateSwapChain()
     ThrowIfFailed(swapchain.As(&m_swapChain));
     m_currentBackBuffer = m_swapChain->GetCurrentBackBufferIndex();
 }
+void D3DAppBase::CreateFenceObjects()
+{
+    ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    m_currentFence = 1;
+    m_fenceEvent = CreateEvent(nullptr, false, false, nullptr);
+    if (m_fenceEvent == nullptr)
+    {
+        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+    }
+}
+
+void D3DAppBase::CreateRtvAndDsvDescriptorHeaps()
+{
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = m_frameCount;
+    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    rtvHeapDesc.NodeMask = 0;
+    ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+
+
+    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+    dsvHeapDesc.NumDescriptors = 1;
+    dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    dsvHeapDesc.NodeMask = 0;
+    ThrowIfFailed(m_device->CreateDescriptorHeap(
+        &dsvHeapDesc,
+        IID_PPV_ARGS(&m_dsvHeap)
+    ));
+}
+
 
 void D3DAppBase::OnInit()
 {

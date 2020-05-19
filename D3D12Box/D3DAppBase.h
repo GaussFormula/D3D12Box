@@ -49,6 +49,8 @@ protected:
     void CreateCommandAllocator();
     void CreateCommandList();
     void CreateSwapChain();
+    void CreateFenceObjects();
+    void CreateRtvAndDsvDescriptorHeaps();
 
 
     ComPtr<IDXGIFactory4>   m_factory;
@@ -81,6 +83,7 @@ protected:
 
     ComPtr<ID3D12Fence> m_fence;
     UINT64 m_currentFence = 0;
+    HANDLE m_fenceEvent;
 
     bool m_useWarpDevice = false;
     UINT m_width;
@@ -98,5 +101,6 @@ protected:
     D3D12_COMMAND_LIST_TYPE m_commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 private:
+    std::wstring m_assetsPath;
     std::wstring m_title;
 };
