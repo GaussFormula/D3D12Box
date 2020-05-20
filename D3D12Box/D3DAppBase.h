@@ -52,6 +52,8 @@ protected:
     void CreateFenceObjects();
     void CreateRtvAndDsvDescriptorHeaps();
     void CreateFrameResources();
+    void PopulateCommandList();
+    void WaitForPreviousFrame();
 
 
     ComPtr<IDXGIFactory4>   m_factory;

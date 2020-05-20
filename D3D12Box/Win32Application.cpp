@@ -59,6 +59,13 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
         SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
     }
     return 0;
+    case WM_PAINT:
+        if (pSample)
+        {
+            pSample->OnUpdate();
+            pSample->OnRender();
+        }
+        return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;

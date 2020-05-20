@@ -47,6 +47,8 @@ auto D3DAppBase::Run()->int
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            m_gameTimer->Tick();
+            CalculateFrameStats();
         }
         // Otherwise, do animation/game stuff.
         else
@@ -99,6 +101,7 @@ void D3DAppBase::InitializePipeline()
     CheckFeatureSupport();
     CreateSwapChain();
     CreateFenceObjects();
+    CreateRtvAndDsvDescriptorHeaps();
 }
 
 void D3DAppBase::CreateFactoryDeviceAdapter()
@@ -290,12 +293,7 @@ void D3DAppBase::CreateCommandObjects()
     CreateCommandList();
 }
 
-void D3DAppBase::OnUpdate()
-{
-
-}
-
-void D3DAppBase::OnRender()
+void D3DAppBase::PopulateCommandList()
 {
     // Command list allocators can only be reset when the associated 
     // command lists have finished execution on the GPU; apps should use 
@@ -313,11 +311,11 @@ void D3DAppBase::OnRender()
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(),m_currentBackBuffer,m_rtvDescriptorSize);
-    
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_currentBackBuffer, m_rtvDescriptorSize);
+
 
     // Record commands.
-    if (m_currentBackBuffer % 2 == 0)
+    if (m_swapChain->GetCurrentBackBufferIndex()%2==0)
     {
         m_commandList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
     }
@@ -325,8 +323,43 @@ void D3DAppBase::OnRender()
     {
         m_commandList->ClearRenderTargetView(rtvHandle, Colors::Azure, 0, nullptr);
     }
-    
 
+    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_currentBackBuffer].Get(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+    ThrowIfFailed(m_commandList->Close());
+}
+
+void D3DAppBase::WaitForPreviousFrame()
+{
+    const UINT64 fence = m_currentFence;
+    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), fence));
+    m_currentFence++;
+
+    if (m_fence->GetCompletedValue() < fence)
+    {
+        ThrowIfFailed(m_fence->SetEventOnCompletion(fence, m_fenceEvent));
+        WaitForSingleObject(m_fenceEvent, INFINITE);
+    }
+    m_currentBackBuffer = m_swapChain->GetCurrentBackBufferIndex();
+}
+
+void D3DAppBase::OnUpdate()
+{
+
+}
+
+void D3DAppBase::OnRender()
+{
+    // Record all the commands we need to render the scene into the command list.
+    PopulateCommandList();
+
+    // Execute the command list.
+    ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    ThrowIfFailed(m_swapChain->Present(1, 0));
+
+    WaitForPreviousFrame();
 }
 
 void D3DAppBase::OnDestroy()
