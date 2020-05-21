@@ -54,7 +54,11 @@ protected:
     void CreateFrameResources();
     void PopulateCommandList();
     void WaitForPreviousFrame();
+    void BuildRootSignature();
+    void BuildShaderAndInputLayout();
 
+    // Helper function.
+    std::wstring GetAssetsFullPath(LPCWSTR assetName);
 
     ComPtr<IDXGIFactory4>   m_factory;
     ComPtr<ID3D12Device>    m_device;
@@ -77,8 +81,8 @@ protected:
     ComPtr<ID3D12DescriptorHeap>    m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap>    m_dsvHeap;
 
-    D3D12_VIEWPORT  m_screenViewport;
-    D3D12_RECT  m_scissorRect;
+    CD3DX12_VIEWPORT  m_viewport;
+    CD3DX12_RECT  m_scissorRect;
 
     UINT m_rtvDescriptorSize = 0;
     UINT m_dsvDescriptorSize = 0;

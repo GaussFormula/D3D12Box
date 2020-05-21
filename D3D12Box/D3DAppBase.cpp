@@ -9,7 +9,10 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
     m_height(height),
     m_title(name),
     m_useWarpDevice(false),
-    m_frameCount(frameCount)
+    m_frameCount(frameCount),
+    m_currentBackBuffer(0),
+    m_viewport(0.0f,0.0f,static_cast<float>(width),static_cast<float>(height)),
+    m_scissorRect(0,0,static_cast<LONG>(width),static_cast<LONG>(height))
 {
     WCHAR assetsPath[512];
     GetAssetsPath(assetsPath, _countof(assetsPath));
@@ -21,6 +24,11 @@ D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCou
 D3DAppBase::~D3DAppBase()
 {
     m_gameTimer.release();
+}
+
+std::wstring D3DAppBase::GetAssetsFullPath(LPCWSTR assetName)
+{
+    return m_assetsPath + assetName;
 }
 
 void D3DAppBase::ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc)
@@ -280,10 +288,42 @@ void D3DAppBase::CreateFrameResources()
     }
 }
 
+void D3DAppBase::BuildRootSignature()
+{
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+    rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    ComPtr<ID3DBlob> signature;
+    ComPtr<ID3DBlob> error;
+    ThrowIfFailed(D3D12SerializeRootSignature(
+        &rootSignatureDesc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        &signature,
+        &error
+    ));
+    ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
+
+}
+
+void D3DAppBase::BuildShaderAndInputLayout()
+{
+    ComPtr<ID3DBlob> vertexShader;
+    ComPtr<ID3DBlob> pixelShader;
+#if defined(_DEBUG)
+    // Enable better shader debugging with the graphics debugging tools.
+    UINT compileTags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+    UINT compileTags = 0;
+#endif
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileTags, 0, &vertexShader, nullptr));
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileTags, 0, &pixelShader, nullptr));
+
+}
+
 void D3DAppBase::OnInit()
 {
     InitializePipeline();
     CreateFrameResources();
+    BuildRootSignature();
 }
 
 void D3DAppBase::CreateCommandObjects()
