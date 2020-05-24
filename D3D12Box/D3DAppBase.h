@@ -6,7 +6,13 @@
 
 #include "stdafx.h"
 #include "GameTimer.h"
+#include "D3DAppUtil.h"
 
+struct Vertex
+{
+    DirectX::XMFLOAT3 position;
+    DirectX::XMFLOAT4 color;
+};
 
 
 using Microsoft::WRL::ComPtr;
@@ -55,7 +61,9 @@ protected:
     void PopulateCommandList();
     void WaitForPreviousFrame();
     void BuildRootSignature();
-    void BuildShaderAndInputLayout();
+    void BuildShader();
+    void BuildPSO();
+    void BuildGeometry();
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
@@ -63,6 +71,9 @@ protected:
     ComPtr<IDXGIFactory4>   m_factory;
     ComPtr<ID3D12Device>    m_device;
     ComPtr<IDXGIAdapter1>   m_adapter;
+
+    ComPtr<ID3DBlob>    m_vertexShader;
+    ComPtr<ID3DBlob>    m_pixelShader;
 
     ComPtr<ID3D12CommandAllocator>  m_commandAllocator;
     ComPtr<ID3D12CommandQueue>  m_commandQueue;
@@ -77,6 +88,12 @@ protected:
     UINT m_currentBackBuffer = 0;
 
     ComPtr<ID3D12Resource>  m_depthStencilBuffer;
+
+    // App resources.
+    ComPtr<ID3D12Resource>  m_vertexBuffer;
+    D3D12_VERTEX_BUFFER_VIEW    m_vertexBufferView;
+
+    std::unique_ptr<MeshGeometry>   m_geometry = nullptr;
 
     ComPtr<ID3D12DescriptorHeap>    m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap>    m_dsvHeap;

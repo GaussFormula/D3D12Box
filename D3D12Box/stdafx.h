@@ -16,3 +16,4 @@
 #include <wrl.h>
 #include <shellapi.h>
 #include <stdexcept>
+#include <unordered_map>

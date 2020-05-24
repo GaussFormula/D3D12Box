@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "D3DAppBase.h"
 #include "Win32Application.h"
-#include "D3DAppUtil.h"
+#include "UploadBuffer.h"
 using namespace Microsoft::WRL;
 using namespace DirectX;
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
@@ -304,19 +304,87 @@ void D3DAppBase::BuildRootSignature()
 
 }
 
-void D3DAppBase::BuildShaderAndInputLayout()
+void D3DAppBase::BuildShader()
 {
-    ComPtr<ID3DBlob> vertexShader;
-    ComPtr<ID3DBlob> pixelShader;
 #if defined(_DEBUG)
     // Enable better shader debugging with the graphics debugging tools.
     UINT compileTags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
     UINT compileTags = 0;
 #endif
-    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileTags, 0, &vertexShader, nullptr));
-    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileTags, 0, &pixelShader, nullptr));
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileTags, 0, &m_vertexShader, nullptr));
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileTags, 0, &m_pixelShader, nullptr));
 
+}
+
+void D3DAppBase::BuildPSO()
+{
+    // Define the vertex input layout.
+    D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+    {
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+        {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
+    };
+
+    // Describe and create the graphics pipeline state object (PSO).
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+    psoDesc.InputLayout = { inputElementDescs,_countof(inputElementDescs) };
+    psoDesc.pRootSignature = m_rootSignature.Get();
+    psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());
+    psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_pixelShader.Get());
+    psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    psoDesc.DepthStencilState.DepthEnable = FALSE;
+    psoDesc.DepthStencilState.StencilEnable = FALSE;
+    psoDesc.SampleMask = UINT_MAX;
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoDesc.NumRenderTargets = 1;
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psoDesc.SampleDesc.Count = 1;
+    ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+}
+
+void D3DAppBase::BuildGeometry()
+{
+    Vertex triangleVertices[] =
+    {
+        { { 0.0f, 0.25f * m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+        { { 0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+        { { -0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+    };
+
+    const UINT vertexBufferSize = sizeof(triangleVertices);
+
+    uint16_t indices[] = { 0,1,2 };
+
+    const UINT indexBufferSize = sizeof(indices);
+
+    m_geometry = std::make_unique<MeshGeometry>();
+    m_geometry->name = "triangle";
+
+    ThrowIfFailed(D3DCreateBlob(vertexBufferSize, &m_geometry->VertexBufferCPU));
+    CopyMemory(m_geometry->VertexBufferCPU->GetBufferPointer(), triangleVertices, vertexBufferSize);
+
+    ThrowIfFailed(D3DCreateBlob(indexBufferSize, &m_geometry->IndexBufferCPU));
+    CopyMemory(m_geometry->IndexBufferCPU->GetBufferPointer(), indices, indexBufferSize);
+
+    m_geometry->VertexBufferGPU = CreateDefaultBuffer(m_device.Get(), m_commandList.Get(), triangleVertices,
+        vertexBufferSize, m_geometry->VertexBufferUploader);
+
+    m_geometry->IndexBufferGPU = CreateDefaultBuffer(m_device.Get(), m_commandList.Get(), indices, 
+        indexBufferSize, m_geometry->IndexBufferUploader);
+
+    m_geometry->VertexByteStride = sizeof(Vertex);
+    m_geometry->VertexBufferByteSize = vertexBufferSize;
+    m_geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+    m_geometry->IndexBufferByteSize = indexBufferSize;
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = _countof(indices);
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    m_geometry->DrawArgs["triangle"] = submesh;
 }
 
 void D3DAppBase::OnInit()
@@ -324,6 +392,16 @@ void D3DAppBase::OnInit()
     InitializePipeline();
     CreateFrameResources();
     BuildRootSignature();
+    BuildShader();
+    BuildPSO();
+
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+    BuildGeometry();
+    m_commandList->Close();
+    ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+    WaitForPreviousFrame();
 }
 
 void D3DAppBase::CreateCommandObjects()
@@ -345,6 +423,11 @@ void D3DAppBase::PopulateCommandList()
     // re-recording.
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 
+    // Set necessary state.
+    m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+    m_commandList->RSSetViewports(1, &m_viewport);
+    m_commandList->RSSetScissorRects(1, &m_scissorRect);
+
     // Indicate that the back buffer will be used as a render target.
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
         m_renderTargets[m_currentBackBuffer].Get(),
@@ -352,17 +435,15 @@ void D3DAppBase::PopulateCommandList()
         D3D12_RESOURCE_STATE_RENDER_TARGET));
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_currentBackBuffer, m_rtvDescriptorSize);
-
+    m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     // Record commands.
-    if (m_swapChain->GetCurrentBackBufferIndex()%2==0)
-    {
-        m_commandList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
-    }
-    else
-    {
-        m_commandList->ClearRenderTargetView(rtvHandle, Colors::Azure, 0, nullptr);
-    }
+    m_commandList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_commandList->IASetVertexBuffers(0, 1, &m_geometry->VertexBufferView());
+    m_commandList->IASetIndexBuffer(&m_geometry->IndexBufferView());
+    
+    m_commandList->DrawIndexedInstanced(m_geometry->DrawArgs["triangle"].IndexCount, 1, 0, 0, 0);
 
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_currentBackBuffer].Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
