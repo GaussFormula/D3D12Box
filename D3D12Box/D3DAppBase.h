@@ -7,6 +7,7 @@
 #include "stdafx.h"
 #include "GameTimer.h"
 #include "D3DAppUtil.h"
+#include "UploadBuffer.h"
 
 struct Vertex
 {
@@ -14,6 +15,10 @@ struct Vertex
     DirectX::XMFLOAT4 color;
 };
 
+struct ObjectConstants
+{
+    DirectX::XMMATRIX WorldViewProj = DirectX::XMMatrixIdentity();
+};
 
 using Microsoft::WRL::ComPtr;
 
@@ -64,6 +69,8 @@ protected:
     void BuildShader();
     void BuildPSO();
     void BuildGeometry();
+    void BuildConstantDescriptorHeaps();
+    void BuildConstantBuffer();
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
@@ -97,6 +104,9 @@ protected:
 
     ComPtr<ID3D12DescriptorHeap>    m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap>    m_dsvHeap;
+    ComPtr<ID3D12DescriptorHeap>    m_cbvHeap;
+
+    std::unique_ptr<UploadBuffer<ObjectConstants>>  m_objectCB = nullptr;
 
     CD3DX12_VIEWPORT  m_viewport;
     CD3DX12_RECT  m_scissorRect;
@@ -127,4 +137,8 @@ protected:
 private:
     std::wstring m_assetsPath;
     std::wstring m_title;
+
+    float m_theta = 1.5f * DirectX::XM_PI;
+    float m_phi = DirectX::XM_PIDIV4;
+    float m_radius = 5.0f;
 };
