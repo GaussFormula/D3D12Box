@@ -389,6 +389,8 @@ void D3DAppBase::BuildPSO()
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_pixelShader.Get());
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;// For easily debug.
+    psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
     psoDesc.SampleMask = UINT_MAX;
@@ -404,10 +406,10 @@ void D3DAppBase::BuildGeometry()
 {
     Vertex triangleVertices[] =
     {
-        { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) },
-        { XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) },
-        { XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) },
-        { XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) },
+        { XMFLOAT3(0.0f, +1.0f, +1.0f), XMFLOAT4(Colors::White) },
+        { XMFLOAT3(-1.0f, 0.0f, +0.8f), XMFLOAT4(Colors::Black) },
+        { XMFLOAT3(+1.5f, -1.0f, +1.2f), XMFLOAT4(Colors::Red) },
+        { XMFLOAT3(+1.0f, -1.3f, +0.7f), XMFLOAT4(Colors::Yellow) },
         { XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
         { XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
         { XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
@@ -417,29 +419,10 @@ void D3DAppBase::BuildGeometry()
     const UINT vertexBufferSize = sizeof(triangleVertices);
 
     uint16_t indices[] = { 
-        // front face
-        0, 1, 2,
-        0, 2, 3,
-
-        // back face
-        4, 6, 5,
-        4, 7, 6,
-
-        // left face
-        4, 5, 1,
-        4, 1, 0,
-
-        // right face
-        3, 2, 6,
-        3, 6, 7,
-
-        // top face
-        1, 5, 6,
-        1, 6, 2,
-
-        // bottom face
-        4, 0, 3,
-        4, 3, 7
+        0,1,3,
+        0,3,2,
+        3,1,2,
+        2,1,0
     };
 
     const UINT indexBufferSize = sizeof(indices);
