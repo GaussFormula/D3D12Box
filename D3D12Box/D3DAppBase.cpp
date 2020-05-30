@@ -406,14 +406,14 @@ void D3DAppBase::BuildGeometry()
 {
     Vertex triangleVertices[] =
     {
-        { XMFLOAT3(0.0f, +1.0f, +1.0f), XMFLOAT4(Colors::White) },
-        { XMFLOAT3(-1.0f, 0.0f, +0.8f), XMFLOAT4(Colors::Black) },
-        { XMFLOAT3(+1.5f, -1.0f, +1.2f), XMFLOAT4(Colors::Red) },
-        { XMFLOAT3(+1.0f, -1.3f, +0.7f), XMFLOAT4(Colors::Yellow) },
-        { XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
-        { XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) },
-        { XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) },
-        { XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) }
+        { XMFLOAT3(-2.0f, +1.0f, +1.0f), XMFLOAT4(Colors::White) },
+        { XMFLOAT3(-3.0f, 0.0f, +0.8f), XMFLOAT4(Colors::Black) },
+        { XMFLOAT3(-1.5f, -1.0f, +1.2f), XMFLOAT4(Colors::Red) },
+        { XMFLOAT3(-2.0f, -1.3f, +0.7f), XMFLOAT4(Colors::Yellow) },
+        { XMFLOAT3(+1.5f, +1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
+        { XMFLOAT3(+1.0f, -1.0f, +0.7f), XMFLOAT4(Colors::Yellow) },
+        { XMFLOAT3(+2.0f, -1.0f, +0.7f), XMFLOAT4(Colors::Cyan) },
+        { XMFLOAT3(+1.7f, -0.7f, +1.2f), XMFLOAT4(Colors::Magenta) }
     };
 
     const UINT vertexBufferSize = sizeof(triangleVertices);
@@ -422,7 +422,12 @@ void D3DAppBase::BuildGeometry()
         0,1,3,
         0,3,2,
         3,1,2,
-        2,1,0
+        2,1,0,
+
+        0,1,2,
+        0,3,1,
+        0,2,3,
+        3,2,1
     };
 
     const UINT indexBufferSize = sizeof(indices);
@@ -448,11 +453,17 @@ void D3DAppBase::BuildGeometry()
     m_geometry->IndexBufferByteSize = indexBufferSize;
 
     SubmeshGeometry submesh;
-    submesh.IndexCount = _countof(indices);
+    submesh.IndexCount = _countof(indices) / 2;
     submesh.StartIndexLocation = 0;
     submesh.BaseVertexLocation = 0;
 
+    SubmeshGeometry submesh2;
+    submesh2.IndexCount = _countof(indices) / 2;
+    submesh2.StartIndexLocation = _countof(indices) / 2;
+    submesh2.BaseVertexLocation = _countof(triangleVertices) / 2;
+
     m_geometry->DrawArgs["triangle"] = submesh;
+    m_geometry->DrawArgs["triangle2"] = submesh2;
 }
 
 void D3DAppBase::BuildConstantDescriptorHeaps()
@@ -547,7 +558,8 @@ void D3DAppBase::PopulateCommandList()
     m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
     m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
     
-    m_commandList->DrawIndexedInstanced(m_geometry->DrawArgs["triangle"].IndexCount, 1, 0, 0, 0);
+    m_commandList->DrawIndexedInstanced(m_geometry->DrawArgs["triangle"].IndexCount, 1, m_geometry->DrawArgs["triangle"].StartIndexLocation, m_geometry->DrawArgs["triangle"].BaseVertexLocation, 0);
+    m_commandList->DrawIndexedInstanced(m_geometry->DrawArgs["triangle2"].IndexCount, 1, m_geometry->DrawArgs["triangle2"].StartIndexLocation, m_geometry->DrawArgs["triangle2"].BaseVertexLocation, 0);
 
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_currentBackBuffer].Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
