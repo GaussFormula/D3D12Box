@@ -199,16 +199,20 @@ void D3DAppBase::CreateCommandQueue()
     ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 }
 
-void D3DAppBase::CreateCommandAllocator()
+void D3DAppBase::CreateCommandAllocators()
 {
-    ThrowIfFailed(m_device->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocator)));
+    m_commandAllocators.resize(m_frameCount);
+    for (UINT i=0;i<m_frameCount;i++)
+    {
+        ThrowIfFailed(m_device->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_commandAllocators[i])));
+    }
 }
 
 void D3DAppBase::CreateCommandList()
 {
     ThrowIfFailed(m_device->CreateCommandList(
         0, m_commandListType,
-        m_commandAllocator.Get(),
+        m_commandAllocators[m_currentBackBuffer].Get(),
         nullptr, IID_PPV_ARGS(&m_commandList)
     ));
     //m_commandList->Close();
@@ -243,8 +247,14 @@ void D3DAppBase::CreateSwapChain()
 }
 void D3DAppBase::CreateFenceObjects()
 {
-    ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-    m_currentFence = 1;
+    m_fenceValues.resize(m_frameCount);
+    for (UINT i=0;i<m_frameCount;i++)
+    {
+        m_fenceValues[i] = 0;
+    }
+
+    ThrowIfFailed(m_device->CreateFence(m_fenceValues[m_currentBackBuffer], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    m_fenceValues[m_currentBackBuffer]++;
     m_fenceEvent = CreateEvent(nullptr, false, false, nullptr);
     if (m_fenceEvent == nullptr)
     {
@@ -339,7 +349,7 @@ void D3DAppBase::CreateFrameResources()
 void D3DAppBase::BuildRootSignature()
 {
     // Root parameter can be a table, root descriptor or root constants.
-    CD3DX12_ROOT_PARAMETER slotRottParameter[1];
+    CD3DX12_ROOT_PARAMETER slotRottParameter[1] = {};
 
     // Create a single descriptor table of CBVs.
     CD3DX12_DESCRIPTOR_RANGE cbvTable;
@@ -484,7 +494,7 @@ void D3DAppBase::BuildConstantBuffer()
     D3D12_GPU_VIRTUAL_ADDRESS cbAddress = m_objectCB->Resource()->GetGPUVirtualAddress();
 
     // Offset to the ith object constant buffer in the buffer.
-    int constantBufferIndex = 0;
+    UINT64 constantBufferIndex = 0;
     cbAddress += constantBufferIndex * objectConstantBufferSize;
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
@@ -504,19 +514,19 @@ void D3DAppBase::OnInit()
     BuildConstantDescriptorHeaps();
     BuildConstantBuffer();
 
-    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_currentBackBuffer].Get(), m_pipelineState.Get()));
     BuildGeometry();
     m_commandList->Close();
     ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
     m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
-    WaitForPreviousFrame();
+    WaitForGPU();
 }
 
 void D3DAppBase::CreateCommandObjects()
 {
     CreateCommandQueue();
-    CreateCommandAllocator();
+    CreateCommandAllocators();
     CreateCommandList();
 }
 
@@ -525,12 +535,12 @@ void D3DAppBase::PopulateCommandList()
     // Command list allocators can only be reset when the associated 
     // command lists have finished execution on the GPU; apps should use 
     // fences to determine GPU execution progress.
-    ThrowIfFailed(m_commandAllocator->Reset());
+    ThrowIfFailed(m_commandAllocators[m_currentBackBuffer]->Reset());
 
     // However, when ExecuteCommandList() is called on a particular command 
     // list, that command list can then be reset at any time and must be before 
     // re-recording.
-    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_currentBackBuffer].Get(), m_pipelineState.Get()));
 
     // Set necessary state.
     m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
@@ -580,6 +590,37 @@ void D3DAppBase::WaitForPreviousFrame()
     m_currentBackBuffer = m_swapChain->GetCurrentBackBufferIndex();
 }
 
+void D3DAppBase::WaitForGPU()
+{
+    // Schedule a Signal command in the queue.
+    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_currentBackBuffer]));
+
+    // Wait until the fence has been processed.
+    ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_currentBackBuffer], m_fenceEvent));
+    WaitForSingleObjectEx(m_fenceEvent, INFINITE, false);
+
+    // Increment the fence value for the current frame.
+    m_fenceValues[m_currentBackBuffer]++;
+}
+
+void D3DAppBase::MoveToNextFrame()
+{
+    // Schedule a Signal command in the queue.
+    const UINT64 currentFenceValue = m_fenceValues[m_currentBackBuffer];
+    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
+
+    // Update the frame index.
+    m_currentBackBuffer = m_swapChain->GetCurrentBackBufferIndex();
+    if (m_fence->GetCompletedValue() < m_fenceValues[m_currentBackBuffer])
+    {
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_currentBackBuffer], m_fenceEvent));
+        WaitForSingleObjectEx(m_fenceEvent, INFINITE, false);
+    }
+
+    // Set the fence value for the next frame.
+    m_fenceValues[m_currentBackBuffer] = currentFenceValue + 1;
+}
+
 void D3DAppBase::OnUpdate()
 {
     // Convert Spherical to Cartesian coordinates.
@@ -614,10 +655,11 @@ void D3DAppBase::OnRender()
 
     ThrowIfFailed(m_swapChain->Present(1, 0));
 
-    WaitForPreviousFrame();
+    MoveToNextFrame();
 }
 
 void D3DAppBase::OnDestroy()
 {
-
+    WaitForGPU();
+    CloseHandle(m_fenceEvent);
 }

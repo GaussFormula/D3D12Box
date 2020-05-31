@@ -57,7 +57,7 @@ protected:
     void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
     void CreateCommandObjects();
     void CreateCommandQueue();
-    void CreateCommandAllocator();
+    void CreateCommandAllocators();
     void CreateCommandList();
     void CreateSwapChain();
     void CreateFenceObjects();
@@ -71,6 +71,8 @@ protected:
     void BuildGeometry();
     void BuildConstantDescriptorHeaps();
     void BuildConstantBuffer();
+    void WaitForGPU();
+    void MoveToNextFrame();
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
@@ -82,7 +84,7 @@ protected:
     ComPtr<ID3DBlob>    m_vertexShader;
     ComPtr<ID3DBlob>    m_pixelShader;
 
-    ComPtr<ID3D12CommandAllocator>  m_commandAllocator;
+    std::vector<ComPtr<ID3D12CommandAllocator>>  m_commandAllocators;
     ComPtr<ID3D12CommandQueue>  m_commandQueue;
     ComPtr<ID3D12GraphicsCommandList>   m_commandList;
     ComPtr<ID3D12PipelineState> m_pipelineState;
@@ -115,9 +117,11 @@ protected:
     UINT m_dsvDescriptorSize = 0;
     UINT m_cbvSrvUavDescriptorSize = 0;
 
+    // Synchronization objects.
     ComPtr<ID3D12Fence> m_fence;
     UINT64 m_currentFence = 0;
     HANDLE m_fenceEvent;
+    std::vector<UINT64> m_fenceValues;
 
     bool m_useWarpDevice = false;
     UINT m_width;
