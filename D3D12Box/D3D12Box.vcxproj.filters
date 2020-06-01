@@ -42,6 +42,9 @@
     <ClInclude Include="UploadBuffer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="RenderItem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3DAppBase.cpp">
@@ -62,10 +65,13 @@
     <ClCompile Include="D3DAppBox.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="RenderItem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shader.hlsl">
+    <CustomBuild Include="shader.hlsl">
       <Filter>Assets</Filter>
-    </FxCompile>
+    </CustomBuild>
   </ItemGroup>
 </Project>

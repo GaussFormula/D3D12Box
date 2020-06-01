@@ -159,6 +159,7 @@
     <ClInclude Include="D3DAppUtil.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="GameTimer.h" />
+    <ClInclude Include="RenderItem.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="Win32Application.h" />
@@ -168,6 +169,7 @@
     <ClCompile Include="D3DAppBox.cpp" />
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RenderItem.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
