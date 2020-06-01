@@ -9,6 +9,23 @@
 #include <comdef.h>
 #include <DirectXCollision.h>
 
+struct Vertex
+{
+    DirectX::XMFLOAT3 position;
+    DirectX::XMFLOAT4 color;
+};
+
+struct ObjectConstants
+{
+    DirectX::XMMATRIX WorldViewProj = DirectX::XMMatrixIdentity();
+};
+
+struct PassConstants
+{
+    DirectX::XMMATRIX View;
+    DirectX::XMMATRIX InvView;
+};
+
 using Microsoft::WRL::ComPtr;
 
 inline void GetAssetsPath(_Out_writes_(pathSize)WCHAR* path, UINT pathSize)

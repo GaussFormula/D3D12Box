@@ -331,7 +331,7 @@ void D3DAppBase::CreateRtvAndDsvDescriptorHeaps()
     WaitForPreviousFrame();
 }
 
-void D3DAppBase::CreateFrameResources()
+void D3DAppBase::CreateRenderTargetViews()
 {
     m_renderTargets.resize(m_frameCount);
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -507,7 +507,7 @@ void D3DAppBase::BuildConstantBuffer()
 void D3DAppBase::OnInit()
 {
     InitializePipeline();
-    CreateFrameResources();
+    CreateRenderTargetViews();
     BuildRootSignature();
     BuildShader();
     BuildPSO();
@@ -638,9 +638,10 @@ void D3DAppBase::OnUpdate()
     XMMATRIX proj = XMMatrixPerspectiveFovLH(0.25f * XM_PI, m_aspectRatio, 1.0f, 1000.0f);
 
     XMMATRIX worldViewProj = world * view * proj;
+    XMMATRIX& tempWorldViewProj = worldViewProj;
 
     ObjectConstants objectConstants;
-    objectConstants.WorldViewProj = XMMatrixTranspose(worldViewProj);
+    objectConstants.WorldViewProj = XMMatrixTranspose(tempWorldViewProj);
     m_objectCB->CopyData(0, objectConstants);
 }
 

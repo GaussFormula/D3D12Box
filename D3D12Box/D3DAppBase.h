@@ -9,16 +9,7 @@
 #include "D3DAppUtil.h"
 #include "UploadBuffer.h"
 
-struct Vertex
-{
-    DirectX::XMFLOAT3 position;
-    DirectX::XMFLOAT4 color;
-};
 
-struct ObjectConstants
-{
-    DirectX::XMMATRIX WorldViewProj = DirectX::XMMatrixIdentity();
-};
 
 using Microsoft::WRL::ComPtr;
 
@@ -62,7 +53,7 @@ protected:
     void CreateSwapChain();
     void CreateFenceObjects();
     void CreateRtvAndDsvDescriptorHeaps();
-    void CreateFrameResources();
+    void CreateRenderTargetViews();
     void PopulateCommandList();
     void WaitForPreviousFrame();
     void BuildRootSignature();

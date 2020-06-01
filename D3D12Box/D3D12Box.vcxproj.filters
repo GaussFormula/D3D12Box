@@ -45,6 +45,9 @@
     <ClInclude Include="RenderItem.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="FrameResource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D3DAppBase.cpp">
@@ -66,6 +69,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="RenderItem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameResource.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
