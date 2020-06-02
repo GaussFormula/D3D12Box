@@ -621,6 +621,14 @@ void D3DAppBase::MoveToNextFrame()
     m_fenceValues[m_currentBackBuffer] = currentFenceValue + 1;
 }
 
+void D3DAppBase::BuildFrameResources()
+{
+    for (UINT i=0;i<m_numberFrameResources;i++)
+    {
+        m_frameResources.push_back(std::make_unique<FrameResource>(m_device.Get(), 1, (UINT)m_renderItems.size()));
+    }
+}
+
 void D3DAppBase::OnUpdate()
 {
     // Convert Spherical to Cartesian coordinates.

@@ -8,6 +8,8 @@
 #include "GameTimer.h"
 #include "D3DAppUtil.h"
 #include "UploadBuffer.h"
+#include "FrameResource.h"
+#include "RenderItem.h"
 
 
 
@@ -64,6 +66,7 @@ protected:
     void BuildConstantBuffer();
     void WaitForGPU();
     void MoveToNextFrame();
+    void BuildFrameResources();
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
@@ -129,9 +132,16 @@ protected:
     D3D_DRIVER_TYPE m_d3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
     D3D12_COMMAND_LIST_TYPE m_commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
+    std::vector<std::unique_ptr<FrameResource>> m_frameResources;
+    FrameResource* m_currentFrameResource = nullptr;
+    UINT m_currentFrameResourceIndex = 0;
+
+    std::vector<std::unique_ptr<RenderItem>> m_renderItems;
+
 private:
     std::wstring m_assetsPath;
     std::wstring m_title;
+    const UINT  m_numberFrameResources = 3;
 
     float m_theta = 1.5f * DirectX::XM_PI;
     float m_phi = DirectX::XM_PIDIV4;
