@@ -24,6 +24,18 @@ struct PassConstants
 {
     DirectX::XMMATRIX View;
     DirectX::XMMATRIX InvView;
+    DirectX::XMMATRIX Proj;
+    DirectX::XMMATRIX InvProj;
+    DirectX::XMMATRIX ViewProj;
+    DirectX::XMMATRIX InvViewProj;
+    DirectX::XMFLOAT3 EyePosW;
+    float cbPerObjectPad1;
+    DirectX::XMFLOAT2 RenderTargetSize;
+    DirectX::XMFLOAT2 InvRenderTargetSize;
+    float nearZ;
+    float farZ;
+    float TotalTime;
+    float DeltaTime;
 };
 
 using Microsoft::WRL::ComPtr;
