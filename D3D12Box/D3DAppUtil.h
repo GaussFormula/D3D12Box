@@ -17,7 +17,7 @@ struct Vertex
 
 struct ObjectConstants
 {
-    DirectX::XMMATRIX WorldViewProj = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX World = DirectX::XMMatrixIdentity();
 };
 
 struct PassConstants

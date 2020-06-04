@@ -67,6 +67,8 @@ protected:
     void WaitForGPU();
     void MoveToNextFrame();
     void BuildFrameResources();
+    void UpdateObjectConstantBuffers();
+    void UpdateMainPassConstantBuffer(const GameTimer& gt);
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
@@ -122,6 +124,9 @@ protected:
     UINT m_height;
     float m_aspectRatio;
 
+    DirectX::XMMATRIX m_view;
+    DirectX::XMMATRIX m_proj;
+
     std::unique_ptr<GameTimer> m_gameTimer;
 
     bool    m_4xMsaaState = false;
@@ -138,6 +143,8 @@ protected:
 
     std::vector<std::unique_ptr<RenderItem>> m_renderItems;
 
+    PassConstants m_mainPassCB;
+
 private:
     std::wstring m_assetsPath;
     std::wstring m_title;
@@ -146,4 +153,6 @@ private:
     float m_theta = 1.5f * DirectX::XM_PI;
     float m_phi = DirectX::XM_PIDIV4;
     float m_radius = 5.0f;
+
+    XMFLOAT3 m_eyePos = XMFLOAT3(0.0f, 0.0f, 0.0f);
 };

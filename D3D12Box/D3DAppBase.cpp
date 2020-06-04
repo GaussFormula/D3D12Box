@@ -349,14 +349,18 @@ void D3DAppBase::CreateRenderTargetViews()
 void D3DAppBase::BuildRootSignature()
 {
     // Root parameter can be a table, root descriptor or root constants.
-    CD3DX12_ROOT_PARAMETER slotRottParameter[1] = {};
+    CD3DX12_ROOT_PARAMETER slotRootParameter[2] = {};
 
     // Create a single descriptor table of CBVs.
-    CD3DX12_DESCRIPTOR_RANGE cbvTable;
-    cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-    slotRottParameter[0].InitAsDescriptorTable(1, &cbvTable);
+    CD3DX12_DESCRIPTOR_RANGE cbvTable1;
+    cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+    slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable1);
 
-    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(1,slotRottParameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    CD3DX12_DESCRIPTOR_RANGE cbvTable2;
+    cbvTable2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+    slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable2);
+
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(_countof(slotRootParameter),slotRootParameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
     
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
@@ -629,6 +633,48 @@ void D3DAppBase::BuildFrameResources()
     }
 }
 
+void D3DAppBase::UpdateObjectConstantBuffers()
+{
+    UploadBuffer<ObjectConstants>* currentObjectConstantBuffer = m_currentFrameResource->m_objectConstantBuffer.get();
+    for (UINT i = 0; i < m_renderItems.size(); i++)
+    {
+        if (m_renderItems[i]->NumFramesDirty > 0)
+        {
+            DirectX::XMMATRIX& matrix = m_renderItems[i]->World;
+            ObjectConstants objConstants;
+            objConstants.World = DirectX::XMMatrixTranspose(matrix);
+            currentObjectConstantBuffer->CopyData(
+                m_renderItems[i]->ObjectConstantBufferIndex,
+                objConstants);
+            m_renderItems[i]->NumFramesDirty--;
+        }
+    }
+}
+
+void D3DAppBase::UpdateMainPassConstantBuffer(const GameTimer&gt)
+{
+    XMMATRIX viewProj = DirectX::XMMatrixMultiply(m_view, m_proj);
+    XMMATRIX invView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(m_view), m_view);
+    XMMATRIX invProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(m_proj), m_proj);
+    XMMATRIX invViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(viewProj), viewProj);
+
+    m_mainPassCB.View = m_view;
+    m_mainPassCB.InvView = invView;
+    m_mainPassCB.Proj = m_proj;
+    m_mainPassCB.InvProj = invProj;
+    m_mainPassCB.ViewProj = viewProj;
+    m_mainPassCB.InvViewProj = invViewProj;
+    m_mainPassCB.EyePosW = m_eyePos;
+    m_mainPassCB.RenderTargetSize = XMFLOAT2(static_cast<float>(m_width), static_cast<float>(m_height));
+    m_mainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / m_width, 1.0f / m_height);
+    m_mainPassCB.nearZ = 1.0f;
+    m_mainPassCB.farZ = 1000.0f;
+    m_mainPassCB.TotalTime = gt.TotalTime;
+    m_mainPassCB.DeltaTime = gt.DeltaTime;
+
+    m_currentFrameResource->m_passConstantBuffer->CopyData(0, m_mainPassCB);
+}
+
 void D3DAppBase::OnUpdate()
 {
     // Convert Spherical to Cartesian coordinates.
@@ -641,15 +687,15 @@ void D3DAppBase::OnUpdate()
     XMVECTOR target = XMVectorZero();
     XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
-    XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-    XMMATRIX world = XMMatrixIdentity();
-    XMMATRIX proj = XMMatrixPerspectiveFovLH(0.25f * XM_PI, m_aspectRatio, 1.0f, 1000.0f);
+    XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
+    XMMATRIX world = DirectX::XMMatrixIdentity();
+    XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * XM_PI, m_aspectRatio, 1.0f, 1000.0f);
 
     XMMATRIX worldViewProj = world * view * proj;
     XMMATRIX& tempWorldViewProj = worldViewProj;
 
     ObjectConstants objectConstants;
-    objectConstants.WorldViewProj = XMMatrixTranspose(tempWorldViewProj);
+    objectConstants.World = DirectX::XMMatrixTranspose(tempWorldViewProj);
     m_objectCB->CopyData(0, objectConstants);
 }
 
