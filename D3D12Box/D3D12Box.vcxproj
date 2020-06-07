@@ -171,6 +171,7 @@
     <ClCompile Include="D3DAppBox.cpp" />
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="GameTimer.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RenderItem.cpp" />
     <ClCompile Include="stdafx.cpp" />

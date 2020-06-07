@@ -60,4 +60,19 @@ public:
     private:
         std::vector<uint16> m_indices16;
     };
+
+    GeometryGenerator::MeshData CreateCylinder(
+        float bottomRadius, float topRadius,
+        float height, uint32 sliceCount, uint32 stackCount
+    );
+
+    void BuildCylinderTopCap(
+        float bottomRadius, float topRadius, float height,
+        uint32 sliceCount, uint32 stackCount, MeshData& meshData
+    );
+
+    void BuildCylinderBottomCap(
+        float bottomRadius, float topRadius, float height,
+        uint32 sliceCount, uint32 stackCount, MeshData& meshData
+    );
 };
