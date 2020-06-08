@@ -181,3 +181,40 @@ void GeometryGenerator::BuildCylinderBottomCap(float bottomRadius, float topRadi
         meshData.Indices32.push_back(baseIndex + i);
     }
 }
+
+GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCount)
+{
+    MeshData meshData;
+
+    // Compute the vertices starting at the top pole and moving down the stacks.
+
+    // Poles: note that there will be texture coordinate distortion as there is
+    // not a unique point on the texture map to assign to the pole when mapping
+    // a rectangular texture onto a sphere.
+    Vertex topVertex(0.0f, +radius, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    Vertex bottomVertex(0.0f, -radius, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    meshData.Vertices.push_back(topVertex);
+
+    float phiStep = DirectX::XM_PI / stackCount;
+    float thetaStep = DirectX::XM_PI * 2.0f / sliceCount;
+
+    // Compute vertices for each stack ring (do not count the poles as rings).
+    for (uint32 i = 1; i <= stackCount - 1; i++)
+    {
+        float phi = i * phiStep;
+
+        // Vertices of rings.
+        for (uint32 j = 0; j <= sliceCount; j++)
+        {
+            float theta = j * thetaStep;
+            
+            Vertex v;
+
+            // Spherical to cartesian
+            v.Position.x = radius * sinf(phi) * cosf(theta);
+            v.Position.y = radius * cosf(phi);
+            v.Position.z = radius * sinf(phi) * sinf(theta);
+        }
+    }
+}
