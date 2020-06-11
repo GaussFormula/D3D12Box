@@ -2,6 +2,7 @@
 #include "D3DAppBase.h"
 #include "Win32Application.h"
 #include "UploadBuffer.h"
+#include "GeometryGenerator.h"
 using namespace Microsoft::WRL;
 using namespace DirectX;
 D3DAppBase::D3DAppBase(UINT width, UINT height, std::wstring name, UINT frameCount /* = 2 */):
@@ -418,7 +419,7 @@ void D3DAppBase::BuildPSO()
 
 void D3DAppBase::BuildGeometry()
 {
-    Vertex triangleVertices[] =
+    /*Vertex triangleVertices[] =
     {
         { XMFLOAT3(-2.0f, +1.0f, +1.0f), XMFLOAT4(Colors::White) },
         { XMFLOAT3(-3.0f, 0.0f, +0.8f), XMFLOAT4(Colors::Black) },
@@ -477,7 +478,11 @@ void D3DAppBase::BuildGeometry()
     submesh2.BaseVertexLocation = _countof(triangleVertices) / 2;
 
     m_geometry->DrawArgs["triangle"] = submesh;
-    m_geometry->DrawArgs["triangle2"] = submesh2;
+    m_geometry->DrawArgs["triangle2"] = submesh2;*/
+
+
+    GeometryGenerator geoGen;
+
 }
 
 void D3DAppBase::BuildConstantDescriptorHeaps()

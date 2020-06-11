@@ -282,3 +282,106 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32
 
     return meshData;
 }
+
+GeometryGenerator::Vertex GeometryGenerator::MidPoint(const Vertex& v0, const Vertex& v1)
+{
+    XMVECTOR p0 = XMLoadFloat3(&v0.Position);
+    XMVECTOR p1 = XMLoadFloat3(&v1.Position);
+
+    XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
+    XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
+
+    XMVECTOR tan0 = XMLoadFloat3(&v0.TangentU);
+    XMVECTOR tan1 = XMLoadFloat3(&v1.TangentU);
+
+    XMVECTOR tex0 = XMLoadFloat2(&v0.TexC);
+    XMVECTOR tex1 = XMLoadFloat2(&v1.TexC);
+
+    // Compute the midpoints of all the attributes. Vectors need to be normalized
+    // since linear interpolating can make them not unit length.
+    XMVECTOR pos = 0.5f * (p0 + p1);
+    XMVECTOR normal = XMVector3Normalize(0.5f * (n0 + n1));
+    XMVECTOR tangent = XMVector3Normalize(0.5f * (tan0 + tan1));
+    XMVECTOR tex = 0.5f * (tex0 + tex1);
+
+    Vertex v;
+    XMStoreFloat3(&v.Position, pos);
+    XMStoreFloat3(&v.Normal, normal);
+    XMStoreFloat3(&v.TangentU, tangent);
+    XMStoreFloat2(&v.TexC, tex);
+
+    return v;
+}
+
+void GeometryGenerator::Subdivide(GeometryGenerator::MeshData& meshData)
+{
+    // Save a copy of the input geometry.
+    MeshData inputCopy = meshData;
+
+    meshData.Vertices.resize(0);
+    meshData.Indices32.resize(0);
+
+    //       v1
+    //       *
+    //      / \
+	//     /   \
+	//  m0*-----*m1
+    //   / \   / \
+	//  /   \ /   \
+	// *-----*-----*
+    // v0    m2     v2
+
+    // Number of triangles
+    uint32 numTris = (uint32)inputCopy.Indices32.size() / 3;
+    for (unsigned int i = 0; i < numTris; i++)
+    {
+        Vertex v0 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 0]];
+        Vertex v1 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 1]];
+        Vertex v2 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 2]];
+
+        // Generate the midpoints.
+        Vertex m0 = MidPoint(v0, v1);
+        Vertex m1 = MidPoint(v1, v2);
+        Vertex m2 = MidPoint(v0, v2);
+
+        // Add new geometry
+        meshData.Vertices.push_back(v0);// 0
+        meshData.Vertices.push_back(v1);// 1
+        meshData.Vertices.push_back(v2);// 2
+        meshData.Vertices.push_back(m0);// 3
+        meshData.Vertices.push_back(m1);// 4
+        meshData.Vertices.push_back(m2);// 5
+
+        meshData.Indices32.push_back(i * 6 + 0);
+        meshData.Indices32.push_back(i * 6 + 5);
+        meshData.Indices32.push_back(i * 6 + 3);
+
+        meshData.Indices32.push_back(i * 6 + 3);
+        meshData.Indices32.push_back(i * 6 + 5);
+        meshData.Indices32.push_back(i * 6 + 4);
+
+        meshData.Indices32.push_back(i * 6 + 3);
+        meshData.Indices32.push_back(i * 6 + 4);
+        meshData.Indices32.push_back(i * 6 + 1);
+
+        meshData.Indices32.push_back(i * 6 + 5);
+        meshData.Indices32.push_back(i * 6 + 2);
+        meshData.Indices32.push_back(i * 6 + 4);
+    }
+}
+
+GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
+{
+    MeshData meshData;
+
+    // Create the vertices.
+
+    Vertex v[24];
+
+    float w2 = 0.5f * width;
+    float h2 = 0.5f * height;
+    float d2 = 0.5f * depth;
+
+    // Fill in the front face vertex data.
+
+}

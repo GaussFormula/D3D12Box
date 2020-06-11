@@ -71,6 +71,8 @@ public:
         float radius, uint32 sliceCount, uint32 stackCount
     );
 
+    MeshData CreateBox(float width, float height, float depth, uint32 numSubdivisions);
+
 private:
     void BuildCylinderTopCap(
         float bottomRadius, float topRadius, float height,
@@ -81,4 +83,8 @@ private:
         float bottomRadius, float topRadius, float height,
         uint32 sliceCount, uint32 stackCount, MeshData& meshData
     );
+
+    void Subdivide(MeshData& meshData);
+
+    Vertex MidPoint(const Vertex& v0, const Vertex& v1);
 };
