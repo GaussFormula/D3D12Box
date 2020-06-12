@@ -73,6 +73,8 @@ public:
 
     MeshData CreateBox(float width, float height, float depth, uint32 numSubdivisions);
 
+    MeshData CreateGrid(float width, float depth, uint32 m, uint32 n);
+
 private:
     void BuildCylinderTopCap(
         float bottomRadius, float topRadius, float height,
