@@ -386,6 +386,8 @@ void D3DAppBase::BuildShader()
     ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileTags, 0, &m_vertexShader, nullptr));
     ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileTags, 0, &m_pixelShader, nullptr));
 
+    m_shaders["standardVS"] = m_vertexShader;
+    m_shaders["opaquePS"] = m_pixelShader;
 }
 
 void D3DAppBase::BuildPSO()
@@ -557,6 +559,37 @@ void D3DAppBase::BuildGeometry()
     indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
     indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
     indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
+
+    const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    m_geometry = std::make_unique<MeshGeometry>();
+    m_geometry->name = "shapeGeo";
+    ThrowIfFailed(D3DCreateBlob(vbByteSize, &m_geometry->VertexBufferCPU));
+    CopyMemory(m_geometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &m_geometry->IndexBufferCPU));
+    CopyMemory(m_geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    m_geometry->VertexBufferGPU = CreateDefaultBuffer(m_device.Get(), 
+        m_commandList.Get(), vertices.data(), vbByteSize
+        , m_geometry->VertexBufferUploader);
+
+    m_geometry->IndexBufferGPU = CreateDefaultBuffer(m_device.Get(),
+        m_commandList.Get(), indices.data(), ibByteSize, m_geometry->IndexBufferUploader);
+
+    m_geometry->VertexByteStride = sizeof(Vertex);
+    m_geometry->VertexBufferByteSize = vbByteSize;
+
+    m_geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+    m_geometry->IndexBufferByteSize = ibByteSize;
+
+    m_geometry->DrawArgs["box"] = boxSubmesh;
+    m_geometry->DrawArgs["grid"] = gridSubmesh;
+    m_geometry->DrawArgs["sphere"] = sphereSubmesh;
+    m_geometry->DrawArgs["cylinder"] = cylinderSubmesh;
+
+    m_geometries[m_geometry->name] = std::move(m_geometry);
 }
 
 void D3DAppBase::BuildConstantDescriptorHeaps()
@@ -585,6 +618,22 @@ void D3DAppBase::BuildConstantBuffer()
     cbvDesc.SizeInBytes = objectConstantBufferSize;
 
     m_device->CreateConstantBufferView(&cbvDesc, m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+}
+
+void D3DAppBase::BuildPSOs()
+{
+    m_inputLayout =
+    {
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0},
+        {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0}
+    };
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueDesc;
+
+    // PSO for opaque objects.
+    ZeroMemory(&opaqueDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    opaqueDesc.InputLayout = { m_inputLayout.data(),(UINT)m_inputLayout.size() };
+    opaqueDesc.pRootSignature = m_rootSignature.Get();
+    opaqueDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 }
 
 void D3DAppBase::OnInit()

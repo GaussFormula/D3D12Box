@@ -61,6 +61,7 @@ protected:
     void BuildRootSignature();
     void BuildShader();
     void BuildPSO();
+    void BuildPSOs();
     void BuildGeometry();
     void BuildConstantDescriptorHeaps();
     void BuildConstantBuffer();
@@ -155,4 +156,9 @@ private:
     float m_radius = 5.0f;
 
     XMFLOAT3 m_eyePos = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+    std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_geometries;
+    std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
+    std::unordered_map<std::string, ComPtr<ID3DBlob>>    m_shaders;
+    std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pipelineStateObjects;
 };
