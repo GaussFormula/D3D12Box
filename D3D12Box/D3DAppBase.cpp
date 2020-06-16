@@ -636,6 +636,33 @@ void D3DAppBase::BuildPSOs()
     opaqueDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 }
 
+void D3DAppBase::BuildRenderItems()
+{
+    unsigned int constantBufferIndex = 0;
+    const D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    std::unique_ptr<RenderItem> boxRenderItem = std::make_unique<RenderItem>();
+    boxRenderItem->World = XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
+    boxRenderItem->ObjectConstantBufferIndex = constantBufferIndex;// First item in constant buffer.
+    constantBufferIndex++;
+    boxRenderItem->Geo = m_geometries["shapeGeo"].get();
+    boxRenderItem->PrimitiveType = primitiveType;
+    boxRenderItem->IndexCount = m_geometries["shapeGeo"]->DrawArgs["box"].IndexCount;
+    boxRenderItem->StartIndexLocation = m_geometries["shapeGeo"]->DrawArgs["box"].StartIndexLocation;
+    boxRenderItem->BaseVertexLocation = m_geometries["shapeGeo"]->DrawArgs["box"].BaseVertexLocation;
+    m_allItems.push_back(std::move(boxRenderItem));
+
+    std::unique_ptr<RenderItem> gridRenderItem = std::make_unique<RenderItem>();
+    gridRenderItem->World = XMMatrixIdentity();
+    gridRenderItem->ObjectConstantBufferIndex = constantBufferIndex++;
+    gridRenderItem->Geo = m_geometries["shapeGeo"].get();
+    gridRenderItem->PrimitiveType = primitiveType;
+    gridRenderItem->IndexCount = gridRenderItem->Geo->DrawArgs["grid"].IndexCount;
+    gridRenderItem->StartIndexLocation = gridRenderItem->Geo->DrawArgs["grid"].StartIndexLocation;
+    gridRenderItem->BaseVertexLocation = gridRenderItem->Geo->DrawArgs["grid"].BaseVertexLocation;
+    m_allItems.push_back(std::move(gridRenderItem));
+}
+
 void D3DAppBase::OnInit()
 {
     InitializePipeline();

@@ -65,6 +65,7 @@ protected:
     void BuildGeometry();
     void BuildConstantDescriptorHeaps();
     void BuildConstantBuffer();
+    void BuildRenderItems();
     void WaitForGPU();
     void MoveToNextFrame();
     void BuildFrameResources();
@@ -161,4 +162,7 @@ private:
     std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
     std::unordered_map<std::string, ComPtr<ID3DBlob>>    m_shaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pipelineStateObjects;
+
+    std::vector<std::unique_ptr<RenderItem>> m_allItems;
+    std::vector<std::unique_ptr<RenderItem>> m_opaqueItems;
 };

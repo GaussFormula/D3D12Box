@@ -18,7 +18,7 @@ public:
     UINT NumFramesDirty = 0;
 
     UINT ObjectConstantBufferIndex = -1;
-    std::unique_ptr<MeshGeometry>   Geo = nullptr;
+    MeshGeometry*   Geo = nullptr;
 
     // Topology;
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
