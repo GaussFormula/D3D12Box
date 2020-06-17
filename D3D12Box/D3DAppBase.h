@@ -164,5 +164,5 @@ private:
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_pipelineStateObjects;
 
     std::vector<std::unique_ptr<RenderItem>> m_allItems;
-    std::vector<std::unique_ptr<RenderItem>> m_opaqueItems;
+    std::vector<RenderItem*> m_opaqueItems;
 };

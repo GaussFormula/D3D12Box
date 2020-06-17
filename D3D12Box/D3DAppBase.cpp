@@ -661,6 +661,31 @@ void D3DAppBase::BuildRenderItems()
     gridRenderItem->StartIndexLocation = gridRenderItem->Geo->DrawArgs["grid"].StartIndexLocation;
     gridRenderItem->BaseVertexLocation = gridRenderItem->Geo->DrawArgs["grid"].BaseVertexLocation;
     m_allItems.push_back(std::move(gridRenderItem));
+
+    std::unique_ptr<RenderItem> cylinderItem = std::make_unique<RenderItem>();
+    cylinderItem->World = XMMatrixTranslation(-5.0f, 1.5f, -10.0f);
+    cylinderItem->ObjectConstantBufferIndex = constantBufferIndex++;
+    cylinderItem->Geo = m_geometries["shapeGeo"].get();
+    cylinderItem->PrimitiveType = primitiveType;
+    cylinderItem->IndexCount = cylinderItem->Geo->DrawArgs["cylinder"].IndexCount;
+    cylinderItem->StartIndexLocation = cylinderItem->Geo->DrawArgs["cylinder"].StartIndexLocation;
+    cylinderItem->BaseVertexLocation = cylinderItem->Geo->DrawArgs["cylinder"].BaseVertexLocation;
+    m_allItems.push_back(std::move(cylinderItem));
+
+    std::unique_ptr<RenderItem> sphereItem = std::make_unique<RenderItem>();
+    sphereItem->World = XMMatrixTranslation(-5.0f, 3.5f, -10.0f);
+    sphereItem->ObjectConstantBufferIndex = constantBufferIndex++;
+    sphereItem->PrimitiveType = primitiveType;
+    sphereItem->Geo = m_geometries["shapeGeo"].get();
+    sphereItem->IndexCount = sphereItem->Geo->DrawArgs["sphere"].IndexCount;
+    sphereItem->StartIndexLocation = sphereItem->Geo->DrawArgs["sphere"].StartIndexLocation;
+    sphereItem->BaseVertexLocation = sphereItem->Geo->DrawArgs["sphere"].BaseVertexLocation;
+    m_allItems.push_back(std::move(sphereItem));
+
+    for (auto& e:m_allItems)
+    {
+        m_opaqueItems.push_back(e.get());
+    }
 }
 
 void D3DAppBase::OnInit()
