@@ -146,6 +146,7 @@ protected:
     std::vector<std::unique_ptr<RenderItem>> m_renderItems;
 
     PassConstants m_mainPassCB;
+    UINT m_passCbvOffset = 0;
 
 private:
     std::wstring m_assetsPath;

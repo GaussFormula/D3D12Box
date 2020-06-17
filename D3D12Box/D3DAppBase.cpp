@@ -594,8 +594,16 @@ void D3DAppBase::BuildGeometry()
 
 void D3DAppBase::BuildConstantDescriptorHeaps()
 {
+    UINT objCount = (UINT)m_opaqueItems.size();
+    // Need a CBV descriptor for each object for each frame resource.
+    // +1 for the perPass CBV for each frame resource.
+    UINT numDescriptors = (objCount + 1) * m_numberFrameResources;
+
+    // Save an offset to the start of the pass CBVs. There are the last 3 descriptors.
+    m_passCbvOffset = objCount * m_numberFrameResources;
+
     D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-    cbvHeapDesc.NumDescriptors = 1;
+    cbvHeapDesc.NumDescriptors = numDescriptors;
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     cbvHeapDesc.NodeMask = 0;
