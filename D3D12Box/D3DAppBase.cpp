@@ -612,20 +612,51 @@ void D3DAppBase::BuildConstantDescriptorHeaps()
 
 void D3DAppBase::BuildConstantBuffer()
 {
-    m_objectCB = std::make_unique<UploadBuffer<ObjectConstants>>(m_device.Get(), 1, true);
     UINT objectConstantBufferSize = CalculateConstantBufferByteSize(sizeof(ObjectConstants));
+    UINT objCount = (UINT)m_opaqueItems.size();
 
-    D3D12_GPU_VIRTUAL_ADDRESS cbAddress = m_objectCB->Resource()->GetGPUVirtualAddress();
+    // Need a CBV descriptor for each object for each frame resource.
+    for (unsigned int frameIndex = 0; frameIndex < m_numberFrameResources; ++frameIndex)
+    {
+        ComPtr<ID3D12Resource> objectCB = m_frameResources[frameIndex]->m_objectConstantBuffer->Resource();
+        for (unsigned int i=0;i<objCount;++i)
+        {
+            D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objectCB->GetGPUVirtualAddress();
 
-    // Offset to the ith object constant buffer in the buffer.
-    UINT64 constantBufferIndex = 0;
-    cbAddress += constantBufferIndex * objectConstantBufferSize;
+            // Offset to the ith object constant buffer in the buffer.
+            cbAddress += i * objectConstantBufferSize;
 
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-    cbvDesc.BufferLocation = cbAddress;
-    cbvDesc.SizeInBytes = objectConstantBufferSize;
+            // Offset to the object cbv in the descriptor heap.
+            int heapIndex = frameIndex * objCount + i;
+            auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+            handle.Offset(heapIndex, m_cbvSrvUavDescriptorSize);
 
-    m_device->CreateConstantBufferView(&cbvDesc, m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+            D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+            cbvDesc.BufferLocation = cbAddress;
+            cbvDesc.SizeInBytes = objectConstantBufferSize;
+            m_device->CreateConstantBufferView(&cbvDesc, handle);
+        }
+    }
+
+    UINT passCBByteSize = CalculateConstantBufferByteSize(sizeof(PassConstants));
+
+    // Last three descriptors are the pass CBVs for each frame resource.
+    for (unsigned int frameIndex = 0; frameIndex < m_numberFrameResources; frameIndex++)
+    {
+        ComPtr<ID3D12Resource> passCB = m_frameResources[frameIndex]->m_passConstantBuffer->Resource();
+        D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
+
+        // Offset to the pass cbv in the descriptor heap.
+        int heapIndex = m_passCbvOffset + frameIndex;
+        auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+        handle.Offset(heapIndex, m_cbvSrvUavDescriptorSize);
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+        cbvDesc.BufferLocation = cbAddress;
+        cbvDesc.SizeInBytes = passCBByteSize;
+
+        m_device->CreateConstantBufferView(&cbvDesc, handle);
+    }
 }
 
 void D3DAppBase::BuildPSOs()
