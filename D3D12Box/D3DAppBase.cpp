@@ -421,68 +421,6 @@ void D3DAppBase::BuildPSO()
 
 void D3DAppBase::BuildGeometry()
 {
-    /*Vertex triangleVertices[] =
-    {
-        { XMFLOAT3(-2.0f, +1.0f, +1.0f), XMFLOAT4(Colors::White) },
-        { XMFLOAT3(-3.0f, 0.0f, +0.8f), XMFLOAT4(Colors::Black) },
-        { XMFLOAT3(-1.5f, -1.0f, +1.2f), XMFLOAT4(Colors::Red) },
-        { XMFLOAT3(-2.0f, -1.3f, +0.7f), XMFLOAT4(Colors::Yellow) },
-        { XMFLOAT3(+1.5f, +1.0f, +1.0f), XMFLOAT4(Colors::Blue) },
-        { XMFLOAT3(+1.0f, -1.0f, +0.7f), XMFLOAT4(Colors::Yellow) },
-        { XMFLOAT3(+2.0f, -1.0f, +0.7f), XMFLOAT4(Colors::Cyan) },
-        { XMFLOAT3(+1.7f, -0.7f, +1.2f), XMFLOAT4(Colors::Magenta) }
-    };
-
-    const UINT vertexBufferSize = sizeof(triangleVertices);
-
-    uint16_t indices[] = { 
-        0,1,3,
-        0,3,2,
-        3,1,2,
-        2,1,0,
-
-        0,1,2,
-        0,3,1,
-        0,2,3,
-        3,2,1
-    };
-
-    const UINT indexBufferSize = sizeof(indices);
-
-    m_geometry = std::make_unique<MeshGeometry>();
-    m_geometry->name = "triangle";
-
-    ThrowIfFailed(D3DCreateBlob(vertexBufferSize, &m_geometry->VertexBufferCPU));
-    CopyMemory(m_geometry->VertexBufferCPU->GetBufferPointer(), triangleVertices, vertexBufferSize);
-
-    ThrowIfFailed(D3DCreateBlob(indexBufferSize, &m_geometry->IndexBufferCPU));
-    CopyMemory(m_geometry->IndexBufferCPU->GetBufferPointer(), indices, indexBufferSize);
-
-    m_geometry->VertexBufferGPU = CreateDefaultBuffer(m_device.Get(), m_commandList.Get(), triangleVertices,
-        vertexBufferSize, m_geometry->VertexBufferUploader);
-
-    m_geometry->IndexBufferGPU = CreateDefaultBuffer(m_device.Get(), m_commandList.Get(), indices, 
-        indexBufferSize, m_geometry->IndexBufferUploader);
-
-    m_geometry->VertexByteStride = sizeof(Vertex);
-    m_geometry->VertexBufferByteSize = vertexBufferSize;
-    m_geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
-    m_geometry->IndexBufferByteSize = indexBufferSize;
-
-    SubmeshGeometry submesh;
-    submesh.IndexCount = _countof(indices) / 2;
-    submesh.StartIndexLocation = 0;
-    submesh.BaseVertexLocation = 0;
-
-    SubmeshGeometry submesh2;
-    submesh2.IndexCount = _countof(indices) / 2;
-    submesh2.StartIndexLocation = _countof(indices) / 2;
-    submesh2.BaseVertexLocation = _countof(triangleVertices) / 2;
-
-    m_geometry->DrawArgs["triangle"] = submesh;
-    m_geometry->DrawArgs["triangle2"] = submesh2;*/
-
-
     GeometryGenerator geoGen;
     GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
     GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
@@ -724,6 +662,31 @@ void D3DAppBase::BuildRenderItems()
     for (auto& e:m_allItems)
     {
         m_opaqueItems.push_back(e.get());
+    }
+}
+
+void D3DAppBase::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& renderItems)
+{
+    UINT objectCBByteSize = CalculateConstantBufferByteSize(sizeof(ObjectConstants));
+
+    ID3D12Resource* objectCB = m_currentFrameResource->m_objectConstantBuffer->Resource();
+
+    // For each render item...
+    for (unsigned int i = 0; i < renderItems.size(); i++)
+    {
+        auto ri = renderItems[i];
+        cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
+        cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
+        cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+        // Offset to the CBV in the descriptor heap for this object and for this frame resource.
+        UINT cbvIndex = m_currentFrameResourceIndex * (UINT)m_opaqueItems.size() + ri->ObjectConstantBufferIndex;
+        auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
+        cbvHandle.Offset(cbvIndex, m_cbvSrvUavDescriptorSize);
+
+        cmdList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+
+        cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
 }
 

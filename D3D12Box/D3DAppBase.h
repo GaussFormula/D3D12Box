@@ -71,6 +71,7 @@ protected:
     void BuildFrameResources();
     void UpdateObjectConstantBuffers();
     void UpdateMainPassConstantBuffer(const GameTimer& gt);
+    void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& renderItems);
 
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
