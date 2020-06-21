@@ -1,4 +1,4 @@
-cbuffer cbPerObject:register(b0)
+cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
 };
@@ -15,36 +15,36 @@ cbuffer cbPerPass:register(b1)
     float       cbPerObjectPad1;
     float2      gRenderTargerSize;
     float2      gInvRenderTargetSize;
-    float2      gNearZ;
-    float2      gFarZ;
+    float       gNearZ;
+    float       gFarZ;
     float       gTotalTime;
     float       gDeltaTime;
-}
-
-struct VSInput
-{
-    float3 posL:POSITION;
-    float4 color:COLOR;
 };
 
-struct PSInput
+struct VertexIn
 {
-    float4 posH:SV_POSITION;
-    float4 color:COLOR;
+    float3 PosL:POSITION;
+    float4 Color:COLOR;
 };
 
-PSInput VSMain(VSInput vin)
+struct VertexOut
 {
-    PSInput result;
+    float4 PosH : SV_POSITION;
+    float4 Color : COLOR;
+};
+
+VertexOut VS(VertexIn vin)
+{
+    VertexOut result;
 
     // Transform to homogeneous clip spaces.
-    float4 posW = mul(float4(vin.posL, 1.0f), gWorld);
-    result.posH = mul(posW, gWorldViewProj);
-    result.color = vin.color;
+    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+    result.PosH = mul(posW, gViewProj);
+    result.Color = vin.Color;
     return result;
 }
 
-float4 PSMain(PSInput input) : SV_TARGET
+float4 PS(VertexOut pin) : SV_Target
 {
-    return input.color;
+    return pin.Color;
 }

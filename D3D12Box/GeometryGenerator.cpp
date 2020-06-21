@@ -109,6 +109,8 @@ GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius
     }
     BuildCylinderTopCap(bottomRadius, topRadius, height, sliceCount, stackCount, meshData);
     BuildCylinderBottomCap(bottomRadius, topRadius, height, sliceCount, stackCount, meshData);
+
+    return meshData;
 }
 
 void GeometryGenerator::BuildCylinderTopCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData)

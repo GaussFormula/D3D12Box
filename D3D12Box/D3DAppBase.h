@@ -64,15 +64,16 @@ protected:
     void BuildPSOs();
     void BuildGeometry();
     void BuildConstantDescriptorHeaps();
-    void BuildConstantBuffer();
+    void BuildConstantBufferViews();
     void BuildRenderItems();
     void WaitForGPU();
     void MoveToNextFrame();
     void BuildFrameResources();
     void UpdateObjectConstantBuffers();
-    void UpdateMainPassConstantBuffer(const GameTimer& gt);
+    void UpdateMainPassConstantBuffer(std::unique_ptr<GameTimer>& gt);
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& renderItems);
-
+    void UpdateCamera();
+    void FlushCommandQueue();
     // Helper function.
     std::wstring GetAssetsFullPath(LPCWSTR assetName);
 
@@ -83,7 +84,7 @@ protected:
     ComPtr<ID3DBlob>    m_vertexShader;
     ComPtr<ID3DBlob>    m_pixelShader;
 
-    std::vector<ComPtr<ID3D12CommandAllocator>>  m_commandAllocators;
+    ComPtr<ID3D12CommandAllocator>  m_directCommandAllocator;
     ComPtr<ID3D12CommandQueue>  m_commandQueue;
     ComPtr<ID3D12GraphicsCommandList>   m_commandList;
     ComPtr<ID3D12PipelineState> m_pipelineState;
@@ -118,9 +119,8 @@ protected:
 
     // Synchronization objects.
     ComPtr<ID3D12Fence> m_fence;
-    UINT64 m_currentFence = 0;
+    UINT64 m_currentFenceValue = 0;
     HANDLE m_fenceEvent;
-    std::vector<UINT64> m_fenceValues;
 
     bool m_useWarpDevice = false;
     UINT m_width;
@@ -144,7 +144,6 @@ protected:
     FrameResource* m_currentFrameResource = nullptr;
     UINT m_currentFrameResourceIndex = 0;
 
-    std::vector<std::unique_ptr<RenderItem>> m_renderItems;
 
     PassConstants m_mainPassCB;
     UINT m_passCbvOffset = 0;
