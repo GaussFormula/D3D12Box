@@ -50,7 +50,7 @@ protected:
     void GetHardwareAdapter(_In_ IDXGIFactory2* pFactory, _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter);
     void CreateCommandObjects();
     void CreateCommandQueue();
-    void CreateCommandAllocators();
+    void CreateCommandAllocator();
     void CreateCommandList();
     void CreateSwapChain();
     void CreateFenceObjects();
@@ -107,8 +107,6 @@ protected:
     ComPtr<ID3D12DescriptorHeap>    m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap>    m_dsvHeap;
     ComPtr<ID3D12DescriptorHeap>    m_cbvHeap;
-
-    std::unique_ptr<UploadBuffer<ObjectConstants>>  m_objectCB = nullptr;
 
     CD3DX12_VIEWPORT  m_viewport;
     CD3DX12_RECT  m_scissorRect;

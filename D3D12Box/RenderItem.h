@@ -4,18 +4,19 @@
 using namespace DirectX;
 
 // A lightweight structure that stores data needed to draw an object.
+// This will vary from app to app.
 class RenderItem
 {
 public:
     RenderItem() = default;
-    XMMATRIX World;
+    XMMATRIX World = XMMatrixIdentity();
 
     // Dirty flag indicating the object data has changed.
     // And we need to update the constant buffer.
     // We have an object cbuffer for each FrameResource, we have to apply the update
     // to each FrameResource. Thus, when we modify object data, we should set
     // NumFramesDirty = NumFrameResources so that each frame resource gets the update.
-    UINT NumFramesDirty = 0;
+    UINT NumFramesDirty = 3;
 
     UINT ObjectConstantBufferIndex = -1;
     MeshGeometry*   Geo = nullptr;

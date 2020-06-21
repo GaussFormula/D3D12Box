@@ -22,20 +22,20 @@ struct ObjectConstants
 
 struct PassConstants
 {
-    DirectX::XMMATRIX View;
-    DirectX::XMMATRIX InvView;
-    DirectX::XMMATRIX Proj;
-    DirectX::XMMATRIX InvProj;
-    DirectX::XMMATRIX ViewProj;
-    DirectX::XMMATRIX InvViewProj;
-    DirectX::XMFLOAT3 EyePosW;
-    float cbPerObjectPad1;
-    DirectX::XMFLOAT2 RenderTargetSize;
-    DirectX::XMFLOAT2 InvRenderTargetSize;
-    float nearZ;
-    float farZ;
-    float TotalTime;
-    float DeltaTime;
+    DirectX::XMMATRIX View = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX InvView = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX Proj = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX InvProj = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX ViewProj = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX InvViewProj = DirectX::XMMatrixIdentity();
+    DirectX::XMFLOAT3 EyePosW = { 0.0f,0.0f,0.0f };
+    float cbPerObjectPad1 = 0.0f;
+    DirectX::XMFLOAT2 RenderTargetSize = { 0.0f,0.0f };
+    DirectX::XMFLOAT2 InvRenderTargetSize = { 0.0f,0.0f };
+    float nearZ = 0.0f;
+    float farZ = 0.0f;
+    float TotalTime = 0.0f;
+    float DeltaTime = 0.0f;
 };
 
 using Microsoft::WRL::ComPtr;

@@ -200,7 +200,7 @@ void D3DAppBase::CreateCommandQueue()
     ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
 }
 
-void D3DAppBase::CreateCommandAllocators()
+void D3DAppBase::CreateCommandAllocator()
 {
     ThrowIfFailed(m_device->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&m_directCommandAllocator)));
 }
@@ -350,7 +350,9 @@ void D3DAppBase::BuildRootSignature()
     cbvTable2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
     slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable2);
 
-    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(_countof(slotRootParameter),slotRootParameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(_countof(slotRootParameter),
+        slotRootParameter,0,nullptr,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
     
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
@@ -360,8 +362,11 @@ void D3DAppBase::BuildRootSignature()
         &signature,
         &error
     ));
+    if (error != nullptr)
+    {
+        ::OutputDebugStringA((char*)error->GetBufferPointer());
+    }
     ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-
 }
 
 void D3DAppBase::BuildShader()
@@ -372,8 +377,8 @@ void D3DAppBase::BuildShader()
 #else
     UINT compileTags = 0;
 #endif
-    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VS", "vs_5_0", compileTags, 0, &m_shaders["standardVS"], nullptr));
-    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PS", "ps_5_0", compileTags, 0, &m_shaders["opaquePS"], nullptr));
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "VS", "vs_5_1", compileTags, 0, &m_shaders["standardVS"], nullptr));
+    ThrowIfFailed(D3DCompileFromFile(GetAssetsFullPath(L"shader.hlsl").c_str(), nullptr, nullptr, "PS", "ps_5_1", compileTags, 0, &m_shaders["opaquePS"], nullptr));
 }
 
 void D3DAppBase::BuildPSO()
@@ -454,7 +459,7 @@ void D3DAppBase::BuildGeometry()
     // Extract the vertex elements we are interested in and pack the 
     // vertices of all the meshes into one vertex buffer.
 
-    unsigned int totalVertexCount =
+    auto totalVertexCount =
         box.Vertices.size() +
         grid.Vertices.size() +
         sphere.Vertices.size() +
@@ -600,6 +605,7 @@ void D3DAppBase::BuildPSOs()
     opaqueDesc.PS = CD3DX12_SHADER_BYTECODE(m_shaders["opaquePS"].Get());
     opaqueDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     opaqueDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    opaqueDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
     opaqueDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     opaqueDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
     opaqueDesc.SampleMask = UINT_MAX;
@@ -713,6 +719,7 @@ void D3DAppBase::OnInit()
 {
     InitializePipeline();
     ThrowIfFailed(m_commandList->Reset(m_directCommandAllocator.Get(), nullptr));
+    //m_proj = XMMatrixPerspectiveFovLH(0.25f * XM_PI, m_aspectRatio, 1.0f, 1000.0f);
     CreateRenderTargetViews();
     BuildRootSignature();
     BuildShader();
@@ -732,7 +739,7 @@ void D3DAppBase::OnInit()
 void D3DAppBase::CreateCommandObjects()
 {
     CreateCommandQueue();
-    CreateCommandAllocators();
+    CreateCommandAllocator();
     CreateCommandList();
 }
 
@@ -753,7 +760,6 @@ void D3DAppBase::PopulateCommandList()
 
 
     // Set necessary state.
-    m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
     m_commandList->RSSetViewports(1, &m_viewport);
     m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
@@ -773,6 +779,7 @@ void D3DAppBase::PopulateCommandList()
     
     ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
     m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+    m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
 
     unsigned int passCbvIndex = m_passCbvOffset + m_currentFrameResourceIndex;
     auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
