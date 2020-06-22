@@ -81,9 +81,6 @@ protected:
     ComPtr<ID3D12Device>    m_device;
     ComPtr<IDXGIAdapter1>   m_adapter;
 
-    ComPtr<ID3DBlob>    m_vertexShader;
-    ComPtr<ID3DBlob>    m_pixelShader;
-
     ComPtr<ID3D12CommandAllocator>  m_directCommandAllocator;
     ComPtr<ID3D12CommandQueue>  m_commandQueue;
     ComPtr<ID3D12GraphicsCommandList>   m_commandList;
