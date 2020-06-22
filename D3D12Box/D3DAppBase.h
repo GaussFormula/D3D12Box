@@ -98,10 +98,6 @@ protected:
 
     ComPtr<ID3D12Resource>  m_depthStencilBuffer;
 
-    // App resources.
-    ComPtr<ID3D12Resource>  m_vertexBuffer;
-    D3D12_VERTEX_BUFFER_VIEW    m_vertexBufferView;
-
     std::unique_ptr<MeshGeometry>   m_geometry = nullptr;
 
     ComPtr<ID3D12DescriptorHeap>    m_rtvHeap;

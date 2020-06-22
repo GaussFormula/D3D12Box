@@ -394,8 +394,8 @@ void D3DAppBase::BuildPSO()
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
     psoDesc.InputLayout = { inputElementDescs,_countof(inputElementDescs) };
     psoDesc.pRootSignature = m_rootSignature.Get();
-    psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_vertexShader.Get());
-    psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_pixelShader.Get());
+    psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_shaders["standardVS"].Get());
+    psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_shaders["opaquePS"].Get());
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;// For easily debug.
     psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
